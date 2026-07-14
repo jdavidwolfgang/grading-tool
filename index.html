@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grading Tool</title>
+<style>
+:root{--ink:#1E4D2B;--ink-soft:#4a6b52;--paper:#fff;--card:#fff;--line:#e2e6dd;
+  --accent:#1E4D2B;--accent-soft:#eef3ec;--flag:#b1582f;--flag-soft:#f3e3d9;
+  --gold:#C8C372;--gold-soft:#f6f4dd;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;line-height:1.5;}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 22px 80px;}
+header.top{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  border-bottom:3px solid var(--ink);padding-bottom:14px;margin-bottom:26px;position:relative;}
+header.top::after{content:"";position:absolute;left:0;bottom:-3px;width:120px;height:3px;background:var(--gold);}
+header.top h1{font-size:30px;letter-spacing:-0.5px;margin:0;font-weight:700;}
+header.top .sub{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-soft);}
+.mono{font-family:"SF Mono",ui-monospace,Menlo,monospace;}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:20px 22px;margin-bottom:22px;}
+.panel h2{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:1.8px;text-transform:uppercase;
+  color:var(--accent);margin:0 0 16px;padding-bottom:10px;border-bottom:2px solid var(--gold);display:flex;align-items:center;gap:8px;}
+.panel h2 .n{background:var(--accent);color:var(--gold);width:20px;height:20px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;font-size:11px;}
+label.fld{display:block;font-size:13px;color:var(--ink-soft);margin-bottom:5px;}
+input[type=text],input[type=number],textarea,select{width:100%;font-family:inherit;font-size:15px;color:var(--ink);
+  background:#fcfcf7;border:1px solid var(--line);border-radius:3px;padding:8px 10px;}
+textarea{resize:vertical;min-height:54px;line-height:1.45;}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px;}
+button{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:0.5px;cursor:pointer;
+  border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:3px;}
+button.ghost{background:transparent;color:var(--ink);}
+button.gold{background:var(--gold-soft);color:#6f6a18;border-color:var(--gold);}
+button.tiny{padding:4px 9px;font-size:11px;}
+button.danger{border-color:var(--flag);color:var(--flag);background:transparent;}
+button:hover{opacity:0.86;} button:disabled{opacity:0.4;cursor:not-allowed;}
+.course-bar{display:grid;grid-template-columns:0.9fr 1.3fr 0.9fr 1.3fr;gap:18px;align-items:end;margin-bottom:22px;border-left:3px solid var(--gold);}
+@media(max-width:720px){.course-bar{grid-template-columns:1fr;}}
+.filename-preview{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;color:var(--accent);font-weight:700;
+  background:var(--paper);border:1px solid var(--line);border-radius:3px;padding:8px 10px;overflow-wrap:anywhere;line-height:1.4;}
+.gh-bar{display:flex;gap:14px;flex-wrap:wrap;align-items:end;margin-bottom:22px;padding:14px 18px;
+  background:var(--card);border:1px solid var(--line);border-radius:4px;border-left:3px solid var(--accent);}
+.gh-bar .gh-field{min-width:0;}
+.gh-bar .gh-field input{font-size:13px;padding:6px 8px;}
+.gh-bar .gh-field.wide{flex:1;min-width:180px;}
+.gh-status{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:11px;padding:4px 10px;border-radius:12px;white-space:nowrap;}
+.gh-status.connected{background:var(--accent-soft);color:var(--accent);}
+.gh-status.disconnected{background:#fbe4e0;color:#9a3412;}
+.gh-status.saving{background:var(--gold-soft);color:#6f6a18;}
+.gh-path{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:11px;color:var(--ink-soft);
+  margin-top:6px;word-break:break-all;}
+.grid{display:grid;grid-template-columns:1.55fr 1fr;gap:26px;align-items:start;}
+@media(max-width:860px){.grid{grid-template-columns:1fr;}}
+/* mode toggles */
+.mode-bar{display:flex;gap:20px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+.mode-bar label{display:flex;align-items:center;gap:6px;font-family:"SF Mono",ui-monospace,Menlo,monospace;
+  font-size:12px;letter-spacing:0.5px;color:var(--ink);cursor:pointer;user-select:none;}
+.mode-bar input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);}
+/* setup */
+.q-setup{display:flex;gap:14px;flex-wrap:wrap;align-items:end;}
+.q-setup .q-pts{width:80px;} .q-count{width:60px;}
+.q-item{display:flex;align-items:center;gap:8px;}
+.q-label{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;color:var(--accent);font-weight:700;white-space:nowrap;}
+.q-total{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;color:var(--ink-soft);margin-top:10px;}
+table.rubric{width:100%;border-collapse:collapse;}
+table.rubric th{text-align:left;font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:10px;
+  letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);padding:6px 8px;border-bottom:1px solid var(--line);}
+table.rubric td{padding:6px 8px;vertical-align:top;}
+table.rubric input.crit{font-size:14px;} .w-input{width:78px;} .pts-input{width:72px;}
+.weight-bar{height:6px;border-radius:3px;background:var(--accent-soft);overflow:hidden;margin-top:6px;}
+.weight-bar>span{display:block;height:100%;background:var(--accent);}
+.wsum{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;margin-top:10px;color:var(--ink-soft);}
+.wsum.bad{color:var(--flag);}
+.act-cell{display:flex;gap:4px;} button.has-norms{border-color:var(--gold);color:#6f6a18;background:var(--gold-soft);}
+.max-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;} .max-row .fld{margin-bottom:0;} .max-row .pts-input{width:70px;}
+/* score area */
+.crit-block,.q-block{border:1px solid var(--line);border-radius:4px;padding:13px 15px;margin-bottom:12px;background:var(--paper);}
+.crit-block .head,.q-block .head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:9px;}
+.crit-block .head .name,.q-block .head .name{font-weight:700;font-size:15px;}
+.crit-block .head .meta,.q-block .head .meta{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:11px;color:var(--ink-soft);}
+.score-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;} .score-row .pts-input{width:80px;}
+.score-row .of{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;color:var(--ink-soft);}
+.fb-history{display:none;margin-top:6px;width:100%;font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;
+  color:var(--ink-soft);background:var(--gold-soft);border:1px solid var(--gold);border-radius:3px;padding:6px 8px;cursor:pointer;}
+.fb-history option{font-size:12px;}
+.penalty-box{margin-top:14px;padding:13px 15px;border:1px solid var(--flag);border-left:3px solid var(--flag);border-radius:4px;background:var(--flag-soft);}
+.penalty-box .fld{color:#8a3f1f;}
+.score-wrap{position:relative;}
+.score-lock{position:absolute;top:0;left:0;right:0;bottom:0;z-index:10;background:rgba(255,255,255,0.8);
+  display:flex;align-items:center;justify-content:center;border-radius:4px;cursor:default;}
+.score-lock span{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;color:var(--ink-soft);font-style:italic;}
+.editing-banner{background:var(--flag-soft);border:1px solid var(--flag);color:var(--flag);font-size:13px;
+  padding:7px 11px;border-radius:3px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+.nav-row{display:flex;gap:10px;margin-top:10px;}
+/* tooltips */
+.crit-name-wrap{position:relative;cursor:help;}
+.crit-name-wrap .norm-tip{display:none;position:absolute;left:0;top:100%;z-index:100;background:var(--ink);color:#f0f0e8;
+  font-size:12.5px;line-height:1.5;padding:10px 13px;border-radius:4px;min-width:260px;max-width:340px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.25);white-space:normal;pointer-events:none;}
+.crit-name-wrap:hover .norm-tip{display:block;}
+.norm-tip .tip-row{margin-bottom:5px;} .norm-tip .tip-row:last-child{margin-bottom:0;}
+.norm-tip .tip-score{color:var(--gold);font-weight:700;font-family:"SF Mono",ui-monospace,Menlo,monospace;}
+/* output */
+.totalline{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;margin:12px 0 4px;color:var(--ink-soft);
+  display:flex;justify-content:space-between;align-items:baseline;}
+.totalline b{font-size:22px;color:var(--ink);font-family:inherit;}
+.total-left{display:flex;flex-direction:column;gap:2px;}
+.fb-name{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;font-size:16px;font-weight:700;color:var(--accent);}
+.fb-name:empty{display:none;}
+.total-label{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:0.5px;color:var(--ink-soft);}
+.output{background:var(--accent-soft);border:1px solid var(--accent);border-radius:4px;padding:16px 18px;
+  font-size:15.5px;line-height:1.62;white-space:pre-wrap;min-height:40px;}
+.output.empty{color:var(--ink-soft);font-style:italic;background:var(--paper);border-color:var(--line);}
+.pen-note{font-size:13px;color:var(--ink-soft);font-weight:400;font-family:"SF Mono",ui-monospace,Menlo,monospace;}
+.copytag{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:11px;color:var(--accent);margin-left:8px;}
+/* ledger */
+.sort-toggle{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.sort-toggle .sort-label{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);}
+button.seg{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:11px;background:transparent;color:var(--ink-soft);
+  border:1px solid var(--line);border-radius:3px;padding:5px 10px;}
+button.seg.active{background:var(--accent);color:var(--gold);border-color:var(--accent);}
+.curve-range{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.fld-inline{font-size:12px;color:var(--ink-soft);margin:0;}
+.curve-input{width:62px;font-size:14px;font-family:"SF Mono",ui-monospace,Menlo,monospace;padding:5px 8px;text-align:center;}
+.board-head{display:grid;gap:10px;padding:0 6px 8px;border-bottom:2px solid var(--ink);
+  font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-soft);}
+.board-head .hd-raw,.board-head .hd-cv{text-align:right;}
+ol.board{list-style:none;margin:0;padding:0;}
+ol.board li{display:grid;align-items:center;gap:10px;padding:11px 6px;border-bottom:1px solid var(--line);}
+ol.board li:nth-child(even){background:var(--gold-soft);}
+ol.board li:nth-child(odd){background:var(--paper);}
+ol.board li.ungraded{opacity:0.6;} ol.board li.ungraded .nm{font-style:italic;}
+ol.board li.partial-grade{background:#fbe8e4 !important;}
+ol.board li .rk{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;color:var(--ink-soft);text-align:center;}
+ol.board li .nm{font-weight:600;font-size:15px;cursor:pointer;} ol.board li .nm:hover{text-decoration:underline;}
+ol.board li .sc{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:15px;font-weight:600;}
+ol.board li .sc-ungraded{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;color:var(--ink-soft);font-style:italic;}
+ol.board li .cv{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:16px;font-weight:700;color:var(--accent);text-align:right;}
+.rec-breakdown{font-size:13px;color:var(--ink-soft);margin-top:6px;}
+.rec-penalty{font-size:13px;color:#9a3412;margin-top:5px;font-weight:600;}
+.rec-fb{font-size:14px;margin-top:8px;white-space:pre-wrap;line-height:1.55;}
+.pen-tag{font-size:11px;color:#9a3412;font-weight:700;font-family:"SF Mono",ui-monospace,Menlo,monospace;}
+.empty-note{color:var(--ink-soft);font-style:italic;font-size:14px;}
+.footrow{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;}
+ol.board.remove-mode li{grid-template-columns:30px 24px 1fr auto;}
+ol.board.remove-mode input[type=checkbox]{width:16px;height:16px;cursor:pointer;}
+.remove-bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;padding:10px 12px;
+  background:var(--flag-soft);border:1px solid var(--flag);border-radius:4px;}
+.sync-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);}
+.sync-hint{font-size:12px;color:var(--ink-soft);margin:8px 0 0;line-height:1.4;}
+.backup-status{font-size:12px;margin:10px 0 0;padding:6px 10px;border-radius:3px;line-height:1.4;font-weight:600;}
+.backup-status:empty{display:none;}
+.backup-status.saved{background:var(--accent-soft);color:var(--accent);}
+.backup-status.unsaved{background:#fbe4e0;color:#9a3412;}
+details.recdetail summary{cursor:pointer;font-size:13px;color:var(--accent);font-family:"SF Mono",ui-monospace,Menlo,monospace;}
+.curve-note{font-size:12px;color:var(--ink-soft);margin:12px 0 4px;font-style:italic;line-height:1.45;}
+.stats-wrap{margin:16px 0 4px;border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:4px;
+  background:var(--gold-soft);padding:14px 16px;}
+.stats-title{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--accent);margin-bottom:10px;display:flex;justify-content:space-between;align-items:baseline;}
+.stats-title .stats-n{color:var(--ink-soft);font-size:10px;}
+table.stats-table{width:100%;border-collapse:collapse;}
+table.stats-table td{padding:5px 4px;border-bottom:1px solid rgba(0,0,0,0.06);}
+table.stats-table tr:last-child td{border-bottom:none;}
+td.st-label{font-size:13.5px;color:var(--ink);}
+td.st-val{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:14px;font-weight:700;color:var(--accent);text-align:right;white-space:nowrap;}
+.stats-foot{font-size:11.5px;color:var(--ink-soft);font-style:italic;margin:8px 0 0;}
+table.stats-table tr.flagged td{background:#fbe4e0;}
+table.stats-table tr.flagged td.st-label{color:#9a3412;font-weight:600;}
+table.stats-table tr.flagged td.st-val{color:var(--flag);}
+.stats-foot.flag-foot{color:#9a3412;font-style:normal;}
+/* modal */
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.35);z-index:900;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:#fff;border-radius:6px;padding:24px 26px;max-width:480px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,0.18);}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.modal-title{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--accent);font-weight:700;}
+.modal-sub{font-size:13px;color:var(--ink-soft);margin:0 0 16px;line-height:1.45;}
+.norm-row{margin-bottom:12px;}
+.norm-row .norm-label{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;color:var(--ink-soft);margin-bottom:4px;}
+.norm-row .norm-label b{color:var(--accent);}
+.modal-foot{display:flex;gap:10px;margin-top:18px;}
+/* dashboard */
+.dashboard{display:none;}
+.dashboard.active{display:block;}
+.grader-view{display:none;}
+.grader-view.active{display:block;}
+.dash-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+.sem-section{margin-bottom:24px;}
+.sem-header{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:13px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--accent);font-weight:700;padding:8px 0;border-bottom:2px solid var(--gold);margin-bottom:2px;}
+.course-section{margin:0 0 4px 0;}
+.course-header{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:1px;
+  text-transform:uppercase;color:var(--ink-soft);padding:10px 12px 6px;font-weight:600;}
+.asgn-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;
+  border-bottom:1px solid var(--line);cursor:pointer;border-radius:3px;transition:background 0.1s;}
+.asgn-row:hover{background:var(--accent-soft);}
+.asgn-row:nth-child(even){background:var(--gold-soft);}
+.asgn-row:nth-child(even):hover{background:#ece9c4;}
+.asgn-name{font-weight:600;font-size:15px;}
+.asgn-meta{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:11px;color:var(--ink-soft);}
+.asgn-badge{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:10px;padding:2px 8px;
+  border-radius:10px;letter-spacing:0.5px;text-transform:uppercase;}
+.asgn-badge.rubric{background:var(--accent-soft);color:var(--accent);}
+.asgn-badge.quiz{background:var(--gold-soft);color:#6f6a18;}
+.dash-empty{color:var(--ink-soft);font-style:italic;font-size:14px;padding:20px 0;}
+.asgn-row .asgn-cb{width:16px;height:16px;cursor:pointer;margin-right:8px;flex-shrink:0;}
+.asgn-row.del-mode{cursor:default;}
+.asgn-row.del-mode:hover{background:var(--flag-soft);}
+.course-card{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;
+  border:1px solid var(--line);border-radius:4px;margin-bottom:8px;cursor:pointer;transition:background 0.1s;}
+.course-card:hover{background:var(--accent-soft);border-color:var(--accent);}
+.course-card .cc-name{font-weight:700;font-size:17px;}
+.course-card .cc-count{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;color:var(--ink-soft);}
+.dash-breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:14px;}
+.dash-breadcrumb .bc-link{color:var(--accent);cursor:pointer;font-weight:600;}
+.dash-breadcrumb .bc-link:hover{text-decoration:underline;}
+.dash-breadcrumb .bc-sep{color:var(--ink-soft);}
+.dash-breadcrumb .bc-current{font-weight:700;color:var(--ink);}
+.back-btn{margin-bottom:18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Grading Tool</h1>
+    <span class="sub">rubric &middot; quiz &middot; discursive feedback &middot; class ledger</span>
+  </header>
+  <div class="gh-bar" id="ghBar">
+    <div class="gh-field"><label class="fld">GitHub username</label>
+      <input type="text" id="ghUser" placeholder="username" autocomplete="off"></div>
+    <div class="gh-field wide"><label class="fld">Personal access token</label>
+      <input type="password" id="ghToken" placeholder="ghp_..." autocomplete="off"></div>
+    <div class="gh-field"><label class="fld">Repo</label>
+      <input type="text" id="ghRepo" value="gradebook-data" autocomplete="off"></div>
+    <div style="display:flex;gap:8px;align-items:end;padding-bottom:1px">
+      <button class="tiny" onclick="connectGitHub()">Connect</button>
+      <span class="gh-status disconnected" id="ghStatus">not connected</span>
+    </div>
+  </div>
+  <!-- DASHBOARD VIEW -->
+  <div class="dashboard" id="dashboardView">
+    <div class="panel">
+      <h2><span class="n">&bull;</span> Your assignments</h2>
+      <div class="dash-actions" id="dashActions">
+        <button class="tiny" onclick="newAssignment()">+ New assignment</button>
+        <button class="ghost tiny" onclick="loadDashboard()">Refresh</button>
+        <button class="ghost tiny" onclick="enterDashDeleteMode()">Delete assignments</button>
+      </div>
+      <div id="dashDeleteBar" style="display:none" class="remove-bar">
+        <button class="danger tiny" onclick="confirmDeleteAssignments()">Delete selected</button>
+        <button class="ghost tiny" onclick="exitDashDeleteMode()">Cancel</button>
+      </div>
+      <div id="dashContent"><p class="dash-empty">Connect to GitHub to see your assignments.</p></div>
+    </div>
+  </div>
+  <!-- GRADER VIEW -->
+  <div class="grader-view" id="graderView">
+    <div class="back-btn"><button class="ghost tiny" onclick="showDashboard()">&larr; Back to assignments</button></div>
+  <section class="panel course-bar">
+    <div><label class="fld" for="courseNumber">Course number</label>
+      <input type="text" id="courseNumber" placeholder="e.g. JTC300" autocomplete="off" oninput="onCourseInfoChange()"></div>
+    <div><label class="fld" for="assignmentTitle">Assignment title</label>
+      <input type="text" id="assignmentTitle" placeholder="e.g. Feature Story" autocomplete="off" oninput="onCourseInfoChange()"></div>
+    <div><label class="fld" for="classFormat">Class format</label>
+      <select id="classFormat" onchange="onCourseInfoChange()">
+        <option value="Residential">Residential (RI)</option>
+        <option value="Online">Online (ON)</option>
+      </select></div>
+    <div><label class="fld">Save files as</label>
+      <div class="filename-preview" id="filenamePreview">&mdash;</div></div>
+  </section>
+  <div class="grid">
+    <div>
+      <section class="panel">
+        <h2><span class="n">1</span> Assessment setup</h2>
+        <div class="mode-bar">
+          <label><input type="checkbox" id="chkRubric" onchange="onModeChange()"> Rubric (weighted criteria)</label>
+          <label><input type="checkbox" id="chkCurve" onchange="onModeChange()"> Curve grades</label>
+        </div>
+        <div id="setupArea"></div>
+      </section>
+      <section class="panel">
+        <h2><span class="n">2</span> Grade a student</h2>
+        <div id="editBanner"></div>
+        <div style="margin-bottom:16px">
+          <label class="fld">Student name</label>
+          <input type="text" id="studentName" placeholder="Select a student from the ledger or type a name." autocomplete="off">
+        </div>
+        <div class="score-wrap" id="scoreWrap">
+          <div class="score-lock" id="scoreLock"><span>Enter or select a student name first.</span></div>
+          <div id="scoreArea"></div>
+          <div class="penalty-box">
+            <div><label class="fld" for="penaltyPoints">Penalty (percentage points)</label>
+              <input type="number" id="penaltyPoints" min="0" step="0.5" placeholder="0" style="width:120px" oninput="recompute()"></div>
+            <div style="margin-top:10px"><label class="fld" for="penaltyReason">Penalty explanation</label>
+              <textarea id="penaltyReason" placeholder="e.g. Submitted late." oninput="recompute()"></textarea></div>
+          </div>
+          <div style="margin-top:12px">
+            <label class="fld">Overall / closing comment (optional)</label>
+            <textarea id="overallComment" placeholder="Optional closing remark." oninput="recompute()"></textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+          <button onclick="saveStudent()">Save to ledger</button>
+          <button class="ghost" onclick="clearForm()">Clear form</button>
+        </div>
+        <div class="nav-row">
+          <button class="ghost tiny" onclick="navStudent(-1)">&larr; Previous</button>
+          <button class="ghost tiny" onclick="navStudent(1)">Next &rarr;</button>
+        </div>
+      </section>
+    </div>
+    <div>
+      <section class="panel">
+        <h2><span class="n">3</span> Feedback statement <span class="copytag" id="copyState"></span></h2>
+        <div class="totalline">
+          <span class="total-left"><span id="feedbackName" class="fb-name"></span><span class="total-label">Total score</span></span>
+          <b id="totalDisplay">&mdash;</b>
+        </div>
+        <div class="output empty" id="feedbackOut">Enter scores and comments. The feedback statement appears here.</div>
+        <div style="margin-top:12px"><button class="ghost tiny" onclick="copyFeedback()">Copy text</button></div>
+      </section>
+      <section class="panel">
+        <h2><span class="n">4</span> Class ledger</h2>
+        <div class="sort-toggle">
+          <span class="sort-label">Sort</span>
+          <button class="seg active" id="sortGrade" onclick="setSortMode('grade')">Grade, high to low</button>
+          <button class="seg" id="sortSurname" onclick="setSortMode('surname')">Surname A to Z</button>
+        </div>
+        <div id="curveRangeWrap" style="display:none" class="curve-range">
+          <span class="sort-label">Curve range</span>
+          <label class="fld-inline">Min</label><input type="number" id="curveBottomInput" class="curve-input" min="0" max="100" step="1" value="70" oninput="onCurveRangeChange()">
+          <label class="fld-inline">Max</label><input type="number" id="curveTopInput" class="curve-input" min="0" max="100" step="1" value="98" oninput="onCurveRangeChange()">
+        </div>
+        <div id="boardHeadWrap"></div>
+        <ol class="board" id="board"></ol>
+        <div id="boardEmpty" class="empty-note">No students recorded yet.</div>
+        <div class="curve-note" id="curveNote"></div>
+        <div class="stats-wrap" id="statsWrap" style="display:none"></div>
+        <div id="removeBar" style="display:none" class="remove-bar">
+          <button class="danger tiny" onclick="confirmRemoveSelected()">Remove selected</button>
+          <button class="ghost tiny" onclick="exitRemoveMode()">Cancel</button>
+        </div>
+        <div class="footrow" id="normalFooter">
+          <button class="ghost tiny" onclick="document.getElementById('rosterFile').click()">Import roster</button>
+          <input type="file" id="rosterFile" accept=".csv,.tsv,.txt" style="display:none" onchange="importRoster(this)">
+          <button class="ghost tiny" onclick="exportCSV()">Export CSV</button>
+          <button class="ghost tiny" onclick="enterRemoveMode()">Remove students</button>
+          <button class="danger tiny" onclick="wipeAll()">Clear ledger</button>
+        </div>
+        <div class="sync-row">
+          <button class="gold tiny" onclick="exportBackup()">Download backup</button>
+          <button class="gold tiny" onclick="document.getElementById('importFile').click()">Import backup</button>
+          <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importBackup(this)">
+        </div>
+        <p class="backup-status" id="backupStatus"></p>
+        <p class="sync-hint">When connected to GitHub, all data syncs automatically. Backup files are optional and can be used for offline work or migration.</p>
+      </section>
+    </div>
+  </div>
+  </div><!-- end grader-view -->
+</div>
+<div class="modal-overlay" id="normsOverlay" onclick="if(event.target===event.currentTarget)closeNorms()"> id="normsOverlay" onclick="if(event.target===event.currentTarget)closeNorms()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-head"><span class="modal-title" id="normsTitle">Score descriptions</span>
+      <button class="ghost tiny" onclick="closeNorms()">&times;</button></div>
+    <p class="modal-sub">Define what each score level means. These show as a tooltip when you hover over the criterion name.</p>
+    <div id="normsFields"></div>
+    <div class="modal-foot"><button onclick="saveNorms()">Save</button><button class="ghost" onclick="closeNorms()">Cancel</button></div>
+  </div>
+</div>
+<script>
+/* ===== STATE ===== */
+let students=[],editingId=null,sortMode='grade',unsavedSinceBackup=false,removeMode=false,dashDeleteMode=false;
+let dashView='classes'; // 'classes' or 'course'
+let dashSem='',dashCourse='',repoTree=null;
+let courseNumber='',assignmentTitle='',classFormat='Residential';
+let useRubric=false,useCurve=false;
+// Rubric mode state
+let rubric=[],cid=1,globalMax=3;
+// Quiz mode state
+let qItems=[{id:1,name:'Question 1',max:0},{id:2,name:'Question 2',max:0}]; let qid=3;
+// Curve state
+let curveActive=false,curveTop=98,curveBottom=70;
+const AUTO_CURVE_MIN=10;
+let normsEditingId=null;
+
+/* ===== STORAGE ===== */
+// localStorage for fast local cache + GitHub credentials
+const KP='gradingTool:';
+function hasLS(){try{const t='__gt__';localStorage.setItem(t,'1');localStorage.removeItem(t);return true;}catch(e){return false;}}
+const ULS=hasLS();
+function lsGet(k){if(!ULS)return null;const v=localStorage.getItem(KP+k);return v==null?null:v;}
+function lsSet(k,v){if(ULS)localStorage.setItem(KP+k,v);}
+function lsDel(k){if(ULS)localStorage.removeItem(KP+k);}
+
+// GitHub API layer
+let ghConnected=false, ghSHA=null, ghSaveTimer=null;
+function ghCreds(){return{user:lsGet('gh_user')||'',token:lsGet('gh_token')||'',repo:lsGet('gh_repo')||'gradebook-data'};}
+function ghPath(){
+  const sem=semesterCode(new Date()),yr=new Date().getFullYear();
+  const c=fileSafe(courseNumber),t=fileSafe(assignmentTitle);
+  if(!c||!t)return null;
+  return `${sem}_${yr}/${c}/${t}.json`;
+}
+async function ghAPI(method,path,body){
+  const cr=ghCreds();if(!cr.user||!cr.token||!cr.repo)return null;
+  const url=`https://api.github.com/repos/${cr.user}/${cr.repo}/contents/${path}`;
+  const opts={method,headers:{'Authorization':'Bearer '+cr.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'}};
+  if(body)opts.body=JSON.stringify(body);
+  try{const r=await fetch(url,opts);if(!r.ok){if(r.status===404)return{notFound:true};return{error:r.status};}return await r.json();}
+  catch(e){return{error:e.message};}
+}
+async function ghRead(path){
+  const data=await ghAPI('GET',path);
+  if(!data||data.notFound||data.error)return null;
+  ghSHA=data.sha; // store SHA for future updates
+  try{return JSON.parse(decodeURIComponent(escape(atob(data.content))));}catch(e){return null;}
+}
+async function ghWrite(path,payload){
+  const content=btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2))));
+  const body={message:`Update ${path}`,content};
+  if(ghSHA)body.sha=ghSHA; // include SHA to update existing file
+  const result=await ghAPI('PUT',path,body);
+  if(result&&result.content)ghSHA=result.content.sha; // update SHA after write
+  return result&&!result.error;
+}
+function setGHStatus(state,msg){
+  const el=document.getElementById('ghStatus');if(!el)return;
+  el.textContent=msg;el.className='gh-status '+state;
+}
+async function connectGitHub(){
+  const user=document.getElementById('ghUser').value.trim();
+  const token=document.getElementById('ghToken').value.trim();
+  const repo=document.getElementById('ghRepo').value.trim()||'gradebook-data';
+  if(!user||!token){alert('Enter your GitHub username and token.');return;}
+  lsSet('gh_user',user);lsSet('gh_token',token);lsSet('gh_repo',repo);
+  setGHStatus('saving','connecting...');
+  // Test connection by reading repo root
+  const test=await ghAPI('GET','');
+  if(!test||test.error){setGHStatus('disconnected','connection failed');ghConnected=false;
+    alert('Could not connect. Check your username, token, and repo name.');return;}
+  ghConnected=true;setGHStatus('connected','connected');
+  // Hide credential fields after successful connection
+  document.getElementById('ghToken').type='password';
+  // Show dashboard
+  showDashboard();
+}
+
+// Build the full state payload (same format as backup)
+function buildPayload(){
+  return{format:'grading-tool-backup',version:2,savedAt:new Date().toISOString(),
+    courseNumber,assignmentTitle,classFormat,useRubric,useCurve,globalMax,curveTop,curveBottom,rubric,qItems,students};
+}
+// Restore state from a payload
+function restorePayload(d){
+  courseNumber=d.courseNumber||'';assignmentTitle=d.assignmentTitle||'';classFormat=d.classFormat||'Residential';
+  useRubric=!!d.useRubric;useCurve=!!d.useCurve;
+  if(d.globalMax!=null)globalMax=d.globalMax;if(d.curveTop!=null)curveTop=d.curveTop;if(d.curveBottom!=null)curveBottom=d.curveBottom;
+  if(d.rubric)rubric=d.rubric;if(d.qItems)qItems=d.qItems;if(d.students)students=d.students;
+  cid=Math.max(0,...rubric.map(r=>r.id||0),...qItems.map(q=>q.id||0))+1;qid=cid;
+  if(!rubric.length)rubric=[{id:cid++,name:'Thesis & argument',weight:40},{id:cid++,name:'Evidence & analysis',weight:40},{id:cid++,name:'Clarity & mechanics',weight:20}];
+}
+
+// Try to load assignment from GitHub based on current course fields
+async function tryLoadFromGH(){
+  const path=ghPath();if(!path||!ghConnected)return false;
+  lastGHPath=path; // track so the debounce doesn't re-fire
+  setGHStatus('saving','loading...');
+  const data=await ghRead(path);
+  if(data){restorePayload(data);populateUI();recompute();setGHStatus('connected','loaded');return true;}
+  setGHStatus('connected','new assignment');ghSHA=null;return false;
+}
+
+// Save to GitHub (debounced: waits 2s after last call before actually saving)
+function scheduleGHSave(){
+  if(!ghConnected)return;
+  if(ghSaveTimer)clearTimeout(ghSaveTimer);
+  ghSaveTimer=setTimeout(async()=>{
+    const path=ghPath();if(!path)return;
+    setGHStatus('saving','saving...');
+    const ok=await ghWrite(path,buildPayload());
+    setGHStatus(ok?'connected':'disconnected',ok?'saved':'save failed');
+  },2000);
+}
+// Immediate save to GitHub (used after Save to Ledger)
+async function immediateGHSave(){
+  if(!ghConnected)return;
+  const path=ghPath();if(!path)return;
+  if(ghSaveTimer){clearTimeout(ghSaveTimer);ghSaveTimer=null;}
+  setGHStatus('saving','saving...');
+  const ok=await ghWrite(path,buildPayload());
+  setGHStatus(ok?'connected':'disconnected',ok?'saved':'save failed');
+}
+
+// Load state: try GitHub first, fall back to localStorage
+async function loadState(){
+  // Load GitHub credentials from localStorage
+  const cr=ghCreds();
+  if(cr.user&&cr.token){
+    document.getElementById('ghUser').value=cr.user;
+    document.getElementById('ghToken').value=cr.token;
+    document.getElementById('ghRepo').value=cr.repo;
+    // Test connection silently
+    setGHStatus('saving','connecting...');
+    const test=await ghAPI('GET','');
+    if(test&&!test.error){ghConnected=true;setGHStatus('connected','connected');}
+    else{setGHStatus('disconnected','offline');}
+  }
+  // Try localStorage cache first for immediate display
+  try{const r=lsGet('config');if(r){const d=JSON.parse(r);
+    courseNumber=d.courseNumber||'';assignmentTitle=d.assignmentTitle||'';classFormat=d.classFormat||'Residential';
+    useRubric=!!d.useRubric;useCurve=!!d.useCurve;
+    if(d.globalMax!=null)globalMax=d.globalMax;if(d.curveTop!=null)curveTop=d.curveTop;if(d.curveBottom!=null)curveBottom=d.curveBottom;
+    if(d.rubric)rubric=d.rubric;if(d.qItems)qItems=d.qItems;
+    cid=Math.max(0,...rubric.map(r=>r.id||0),...qItems.map(q=>q.id||0))+1;qid=cid;
+  }}catch(e){}
+  if(!rubric.length)rubric=[{id:cid++,name:'Thesis & argument',weight:40},{id:cid++,name:'Evidence & analysis',weight:40},{id:cid++,name:'Clarity & mechanics',weight:20}];
+  try{const s=lsGet('students');if(s)students=JSON.parse(s);}catch(e){}
+}
+async function persistConfig(){
+  setUnsaved(true);
+  try{lsSet('config',JSON.stringify({courseNumber,assignmentTitle,classFormat,useRubric,useCurve,globalMax,curveTop,curveBottom,rubric,qItems}));}catch(e){}
+  scheduleGHSave(); // debounced GitHub save
+}
+async function persistStudents(){
+  setUnsaved(true);
+  try{lsSet('students',JSON.stringify(students));}catch(e){}
+  // Student saves are important; they get an immediate GitHub save (called separately after saveStudent)
+}
+function setUnsaved(v){unsavedSinceBackup=v;renderBackupStatus();}
+function renderBackupStatus(){const el=document.getElementById('backupStatus');if(!el)return;
+  if(!students.length){el.textContent='';el.className='backup-status';return;}
+  if(ghConnected){el.textContent='Data syncs to GitHub automatically.';el.className='backup-status saved';return;}
+  el.textContent=unsavedSinceBackup?'Changes not yet saved to a backup file.':'Backup file is up to date.';
+  el.className='backup-status '+(unsavedSinceBackup?'unsaved':'saved');}
+
+/* ===== DASHBOARD ===== */
+function showDashboard(){
+  document.getElementById('dashboardView').className='dashboard active';
+  document.getElementById('graderView').className='grader-view';
+  dashView='classes';dashDeleteMode=false;
+  document.getElementById('dashActions').style.display='flex';
+  document.getElementById('dashDeleteBar').style.display='none';
+  loadDashboard();
+}
+function showGrader(){
+  document.getElementById('dashboardView').className='dashboard';
+  document.getElementById('graderView').className='grader-view active';
+}
+async function loadDashboard(){
+  if(!ghConnected){document.getElementById('dashContent').innerHTML='<p class="dash-empty">Connect to GitHub to see your assignments.</p>';return;}
+  const cr=ghCreds();
+  document.getElementById('dashContent').innerHTML='<p class="dash-empty">Loading...</p>';
+  // Get the full repo tree in one API call and cache it
+  let resp=await fetch(`https://api.github.com/repos/${cr.user}/${cr.repo}/git/trees/main?recursive=1`,{
+    headers:{'Authorization':'Bearer '+cr.token,'Accept':'application/vnd.github+json'}}).catch(()=>null);
+  if(!resp||!resp.ok){
+    resp=await fetch(`https://api.github.com/repos/${cr.user}/${cr.repo}/git/trees/master?recursive=1`,{
+      headers:{'Authorization':'Bearer '+cr.token,'Accept':'application/vnd.github+json'}}).catch(()=>null);
+  }
+  if(!resp||!resp.ok){document.getElementById('dashContent').innerHTML='<p class="dash-empty">Could not load repo.</p>';return;}
+  repoTree=await resp.json();
+  renderDashboard();
+}
+function parseTree(){
+  if(!repoTree)return{};
+  const files=(repoTree.tree||[]).filter(t=>t.type==='blob'&&t.path.endsWith('.json')&&t.path.split('/').length===3);
+  const semesters={};
+  files.forEach(f=>{
+    const parts=f.path.split('/');
+    const sem=parts[0],course=parts[1],file=parts[2].replace('.json','');
+    if(!semesters[sem])semesters[sem]={};
+    if(!semesters[sem][course])semesters[sem][course]=[];
+    semesters[sem][course].push({name:file,path:f.path});
+  });
+  return semesters;
+}
+function semSort(keys){
+  return keys.sort((a,b)=>{
+    const [as,ay]=a.split('_'),[bs,by]=b.split('_');
+    if(ay!==by)return Number(by)-Number(ay);
+    const order={FA:3,SM:2,SP:1,SU:2};return(order[bs]||0)-(order[as]||0);
+  });
+}
+function renderDashboard(){
+  if(dashView==='course')renderCourseView();
+  else renderClassList();
+}
+function renderClassList(){
+  const semesters=parseTree();
+  const semKeys=semSort(Object.keys(semesters));
+  if(!semKeys.length){document.getElementById('dashContent').innerHTML='<p class="dash-empty">No assignments found. Click "+ New assignment" to create one.</p>';return;}
+  let html='';
+  semKeys.forEach(sem=>{
+    html+=`<div class="sem-section"><div class="sem-header">${esc(sem.replace('_',' '))}</div>`;
+    Object.keys(semesters[sem]).sort().forEach(course=>{
+      const count=semesters[sem][course].length;
+      html+=`<div class="course-card" onclick="openCourse('${esc(sem)}','${esc(course)}')">
+        <span class="cc-name">${esc(course)}</span>
+        <span class="cc-count">${count} assignment${count!==1?'s':''}</span></div>`;
+    });
+    html+=`</div>`;
+  });
+  document.getElementById('dashContent').innerHTML=html;
+}
+function openCourse(sem,course){
+  dashView='course';dashSem=sem;dashCourse=course;dashDeleteMode=false;
+  document.getElementById('dashActions').style.display='flex';
+  document.getElementById('dashDeleteBar').style.display='none';
+  renderDashboard();
+}
+function backToClasses(){
+  dashView='classes';dashDeleteMode=false;
+  document.getElementById('dashActions').style.display='flex';
+  document.getElementById('dashDeleteBar').style.display='none';
+  renderDashboard();
+}
+function renderCourseView(){
+  const semesters=parseTree();
+  const assignments=(semesters[dashSem]&&semesters[dashSem][dashCourse])||[];
+  let html=`<div class="dash-breadcrumb">
+    <span class="bc-link" onclick="backToClasses()">All classes</span>
+    <span class="bc-sep">&rsaquo;</span>
+    <span class="bc-current">${esc(dashCourse)} &middot; ${esc(dashSem.replace('_',' '))}</span></div>`;
+  if(!assignments.length){html+='<p class="dash-empty">No assignments in this class yet.</p>';
+    document.getElementById('dashContent').innerHTML=html;return;}
+  assignments.sort((a,b)=>a.name.localeCompare(b.name)).forEach(asgn=>{
+    if(dashDeleteMode){
+      html+=`<div class="asgn-row del-mode">
+        <input type="checkbox" class="asgn-cb" data-path="${esc(asgn.path)}">
+        <span class="asgn-name">${esc(asgn.name)}</span></div>`;
+    } else {
+      html+=`<div class="asgn-row" onclick="openAssignment('${esc(asgn.path)}')">
+        <span class="asgn-name">${esc(asgn.name)}</span></div>`;
+    }
+  });
+  document.getElementById('dashContent').innerHTML=html;
+}
+async function openAssignment(path){
+  setGHStatus('saving','loading...');
+  ghSHA=null;
+  const data=await ghRead(path);
+  if(data){
+    restorePayload(data);
+    lastGHPath=path;
+    populateUI();recompute();
+    setGHStatus('connected','loaded');
+    showGrader();
+  } else {
+    alert('Could not load assignment.');
+    setGHStatus('connected','load failed');
+  }
+}
+function newAssignment(){
+  students=[];editingId=null;courseNumber='';assignmentTitle='';classFormat='Residential';
+  useRubric=false;useCurve=false;globalMax=3;curveTop=98;curveBottom=70;curveActive=false;
+  rubric=[{id:cid++,name:'Thesis & argument',weight:40},{id:cid++,name:'Evidence & analysis',weight:40},{id:cid++,name:'Clarity & mechanics',weight:20}];
+  qItems=[{id:qid++,name:'Question 1',max:0},{id:qid++,name:'Question 2',max:0}];
+  ghSHA=null;lastGHPath='';
+  populateUI();clearForm();
+  showGrader();
+}
+function enterDashDeleteMode(){
+  if(dashView!=='course'){alert('Open a class first, then delete assignments from within it.');return;}
+  dashDeleteMode=true;
+  document.getElementById('dashActions').style.display='none';
+  document.getElementById('dashDeleteBar').style.display='flex';
+  renderDashboard();}
+function exitDashDeleteMode(){dashDeleteMode=false;
+  document.getElementById('dashActions').style.display='flex';
+  document.getElementById('dashDeleteBar').style.display='none';
+  renderDashboard();}
+async function confirmDeleteAssignments(){
+  const cbs=document.querySelectorAll('.asgn-cb:checked');
+  if(!cbs.length){alert('Select at least one assignment to delete.');return;}
+  const paths=[...cbs].map(cb=>cb.dataset.path);
+  if(!confirm(`Delete ${paths.length} assignment${paths.length!==1?'s':''}? This cannot be undone.`))return;
+  setGHStatus('saving','deleting...');
+  const cr=ghCreds();let ok=0,fail=0,lastErr='';
+  for(const path of paths){
+    try{
+      const file=await ghAPI('GET',path);
+      if(!file||file.error||file.notFound||!file.sha){fail++;lastErr='Could not read file: '+path;continue;}
+      const url=`https://api.github.com/repos/${cr.user}/${cr.repo}/contents/${path}`;
+      const resp=await fetch(url,{
+        method:'DELETE',
+        headers:{'Authorization':'Bearer '+cr.token,'Accept':'application/vnd.github+json'},
+        body:JSON.stringify({message:`Delete ${path}`,sha:file.sha})
+      });
+      if(resp.ok){ok++;}else{fail++;const body=await resp.text().catch(()=>'');lastErr=`${resp.status} on ${path}: ${body.slice(0,100)}`;}
+    }catch(e){fail++;lastErr=e.message;}
+  }
+  if(fail)alert(`Deleted ${ok}, failed ${fail}.\nLast error: ${lastErr}`);
+  setGHStatus('connected',`deleted ${ok}`+(fail?`, ${fail} failed`:''));
+  dashDeleteMode=false;
+  document.getElementById('dashActions').style.display='flex';
+  document.getElementById('dashDeleteBar').style.display='none';
+  await loadDashboard(); // refresh tree from GitHub
+  dashView='course';renderDashboard(); // stay in course view
+}
+
+/* ===== MODE TOGGLES ===== */
+function onModeChange(){
+  useRubric=document.getElementById('chkRubric').checked;
+  useCurve=document.getElementById('chkCurve').checked;
+  persistConfig();renderSetup();renderScoreArea();
+  document.getElementById('curveRangeWrap').style.display=useCurve?'flex':'none';
+  if(useCurve){autoCurve();}else{curveActive=false;students.forEach(s=>{delete s.curved;});persistStudents();}
+  renderBoard();recompute();
+}
+
+/* ===== SETUP PANEL ===== */
+function renderSetup(){
+  const area=document.getElementById('setupArea');
+  if(useRubric){
+    // Rubric mode: global max, weighted criteria table
+    let html=`<div class="max-row"><label class="fld">Points per criterion</label>
+      <input type="number" class="pts-input" id="globalMaxInput" min="1" step="1" value="${globalMax}" oninput="onGlobalMaxChange(this.value)"></div>
+      <table class="rubric"><thead><tr><th style="width:52%">Criterion</th><th>Weight %</th><th></th></tr></thead><tbody id="rubricBody"></tbody></table>
+      <div class="weight-bar"><span id="weightFill"></span></div><div class="wsum" id="weightSum"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+        <button class="ghost tiny" onclick="addCriterion()">+ Add criterion</button>
+        <button class="ghost tiny" onclick="distributeWeights()">Even out weights</button></div>`;
+    area.innerHTML=html;
+    renderRubricRows();updateWeightBar();
+  } else {
+    // Quiz mode: named items with per-item max
+    let html=`<div style="margin-bottom:12px"><button class="ghost tiny" onclick="addQuizItem()">+ Add question</button></div><div id="quizItemsArea"></div>`;
+    area.innerHTML=html;
+    renderQuizItems();
+  }
+}
+// --- Rubric helpers ---
+function renderRubricRows(){
+  const body=document.getElementById('rubricBody');if(!body)return;body.innerHTML='';
+  rubric.forEach(c=>{const tr=document.createElement('tr');
+    const hasN=c.norms&&Object.values(c.norms).some(v=>v);
+    tr.innerHTML=`<td><input class="crit" type="text" value="${esc(c.name)}" placeholder="Criterion" oninput="updateCrit(${c.id},'name',this.value)"></td>
+      <td><input class="w-input" type="number" min="0" step="0.1" value="${c.weight}" oninput="updateCrit(${c.id},'weight',this.value)"></td>
+      <td class="act-cell"><button class="ghost tiny ${hasN?'has-norms':''}" onclick="openNorms(${c.id})">Define</button>
+        <button class="ghost tiny" onclick="removeCrit(${c.id})">&times;</button></td>`;
+    body.appendChild(tr);});
+}
+function updateWeightBar(sum){if(sum===undefined)sum=rubric.reduce((a,c)=>a+(Number(c.weight)||0),0);
+  const r=Math.round(sum*10)/10,at100=Math.abs(r-100)<0.05;
+  const fill=document.getElementById('weightFill');if(fill){fill.style.width=Math.min(r,100)+'%';fill.style.background=at100?'var(--accent)':'var(--flag)';}
+  const ws=document.getElementById('weightSum');if(ws){ws.textContent=`Weights total ${r}%`+(at100?' \u2713':' \u2014 should equal 100%');ws.className='wsum'+(at100?'':' bad');}}
+function addCriterion(){rubric.push({id:cid++,name:'',weight:0});persistConfig();renderRubricRows();updateWeightBar();renderScoreArea();}
+function removeCrit(id){rubric=rubric.filter(c=>c.id!==id);persistConfig();renderRubricRows();updateWeightBar();renderScoreArea();}
+function updateCrit(id,field,val){const c=rubric.find(x=>x.id===id);if(!c)return;c[field]=field==='name'?val:Number(val);
+  persistConfig();if(field==='weight')updateWeightBar();renderScoreArea();recompute();}
+function distributeWeights(){if(!rubric.length)return;const b=Math.floor(100/rubric.length);let rem=100-b*rubric.length;
+  rubric.forEach(c=>{c.weight=b+(rem-->0?1:0);});persistConfig();renderRubricRows();updateWeightBar();recompute();}
+function onGlobalMaxChange(v){globalMax=Math.max(1,Number(v)||1);persistConfig();renderScoreArea();recompute();}
+// --- Norms ---
+function openNorms(critId){const c=rubric.find(x=>x.id===critId);if(!c)return;normsEditingId=critId;
+  document.getElementById('normsTitle').textContent=c.name||'Score descriptions';
+  const fields=document.getElementById('normsFields');fields.innerHTML='';const max=Math.max(0,Math.floor(globalMax));const norms=c.norms||{};
+  for(let i=0;i<=max;i++){const div=document.createElement('div');div.className='norm-row';
+    div.innerHTML=`<div class="norm-label"><b>${i}</b> / ${max}</div><textarea id="norm_${i}" placeholder="What does ${i}/${max} look like?">${esc(norms[i]||'')}</textarea>`;
+    fields.appendChild(div);}
+  document.getElementById('normsOverlay').classList.add('open');}
+function saveNorms(){const c=rubric.find(x=>x.id===normsEditingId);if(!c)return;const max=Math.max(0,Math.floor(globalMax));const norms={};
+  for(let i=0;i<=max;i++){const v=(document.getElementById('norm_'+i)?.value||'').trim();if(v)norms[i]=v;}
+  c.norms=norms;persistConfig();renderRubricRows();renderScoreArea();closeNorms();}
+function closeNorms(){normsEditingId=null;document.getElementById('normsOverlay').classList.remove('open');}
+function buildNormTip(c){if(!c.norms||!Object.values(c.norms).some(v=>v))return'';const max=Math.max(0,Math.floor(globalMax));
+  let h='<div class="norm-tip">';for(let i=0;i<=max;i++){h+=`<div class="tip-row"><span class="tip-score">${i}/${max}</span> ${c.norms[i]||'<em>not defined</em>'}</div>`;}return h+'</div>';}
+// --- Quiz helpers ---
+function renderQuizItems(){const area=document.getElementById('quizItemsArea');if(!area)return;area.innerHTML='';
+  qItems.forEach((q,i)=>{const div=document.createElement('div');div.className='q-block';div.style.marginBottom='10px';
+    div.innerHTML=`<div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+      <div style="flex:1;min-width:140px"><label class="fld">Name</label><input type="text" value="${esc(q.name)}" oninput="updateQItem(${q.id},'name',this.value)"></div>
+      <div><label class="fld">Max pts</label><input type="number" class="pts-input" min="0" step="1" value="${q.max||''}" style="width:80px" oninput="updateQItem(${q.id},'max',this.value)"></div>
+      <button class="ghost tiny" onclick="removeQItem(${q.id})" style="margin-bottom:8px">&times;</button></div>`;
+    area.appendChild(div);});
+  const total=qItems.reduce((a,q)=>a+(q.max||0),0);
+  let t=area.querySelector('.q-total');if(!t){t=document.createElement('div');t.className='q-total';area.appendChild(t);}
+  t.textContent=total?`Total possible: ${total} points`:'';}
+function addQuizItem(){qItems.push({id:qid++,name:`Question ${qItems.length+1}`,max:0});persistConfig();renderQuizItems();renderScoreArea();}
+function removeQItem(id){if(qItems.length<=1){alert('Need at least one question.');return;}qItems=qItems.filter(q=>q.id!==id);persistConfig();renderQuizItems();renderScoreArea();}
+function updateQItem(id,field,val){const q=qItems.find(x=>x.id===id);if(!q)return;q[field]=field==='name'?val:Math.max(0,Number(val)||0);persistConfig();
+  // Update the total display without rebuilding inputs (avoids focus loss)
+  if(field==='max'){const area=document.getElementById('quizItemsArea');if(area){
+    let t=area.querySelector('.q-total');if(!t){t=document.createElement('div');t.className='q-total';area.appendChild(t);}
+    const total=qItems.reduce((a,q)=>a+(q.max||0),0);t.textContent=total?`Total possible: ${total} points`:'';}}
+  renderScoreArea();recompute();}
+
+/* ===== SCORE AREA ===== */
+function checkLock(){const n=document.getElementById('studentName').value.trim();const l=document.getElementById('scoreLock');if(l)l.style.display=n?'none':'flex';}
+function getItems(){return useRubric?rubric:qItems;}
+function renderScoreArea(){
+  const area=document.getElementById('scoreArea');area.innerHTML='';const items=getItems();
+  items.forEach(c=>{
+    const div=document.createElement('div');div.className=useRubric?'crit-block':'q-block';
+    const max=useRubric?globalMax:(c.max||0);
+    let nameHtml;
+    if(useRubric){const tip=buildNormTip(c);nameHtml=tip?`<span class="crit-name-wrap"><span class="name">${esc(c.name)||'<em>Unnamed</em>'}</span>${tip}</span>`
+      :`<span class="name">${esc(c.name)||'<em>Unnamed</em>'}</span>`;}
+    else{nameHtml=`<span class="name">${esc(c.name)||'Question'}</span>`;}
+    const metaText=useRubric?`${trim(c.weight)}% &middot; max ${trim(max)}`:`max ${trim(max)} pts`;
+    div.innerHTML=`<div class="head">${nameHtml}<span class="meta">${metaText}</span></div>
+      <div class="score-row"><input class="pts-input" type="number" min="0" max="${max}" step="0.5" id="score_${c.id}" placeholder="0" oninput="recompute()">
+        <span class="of">/ ${trim(max)} points</span></div>
+      <textarea id="cmt_${c.id}" placeholder="Feedback..." oninput="recompute()"></textarea>
+      <select class="fb-history" id="fbhist_${c.id}" onchange="applyHistory('${c.id}')"><option value="" disabled selected>Previous feedback...</option></select>`;
+    area.appendChild(div);});
+  populateFeedbackSelects();checkLock();
+}
+/* ===== FEEDBACK HISTORY ===== */
+function buildFeedbackHistory(){const maps={};students.forEach(s=>{if(!s.items)return;s.items.forEach(it=>{if(!it.comment||!it.name)return;
+  if(!maps[it.name])maps[it.name]={};it.comment.split('\n').forEach(raw=>{const line=raw.trim();if(!line)return;maps[it.name][line]=(maps[it.name][line]||0)+1;});});});return maps;}
+function populateFeedbackSelects(){const maps=buildFeedbackHistory();getItems().forEach(c=>{const sel=document.getElementById('fbhist_'+c.id);if(!sel)return;
+  while(sel.options.length>1)sel.remove(1);const map=maps[c.name]||{};const entries=Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  if(!entries.length){sel.style.display='none';return;}sel.style.display='block';
+  entries.forEach(([line,count])=>{const opt=document.createElement('option');opt.value=line;
+    opt.textContent=(line.length>80?line.slice(0,77)+'...':line)+` (${count})`;sel.appendChild(opt);});sel.selectedIndex=0;});}
+function applyHistory(cid){const sel=document.getElementById('fbhist_'+cid),ta=document.getElementById('cmt_'+cid);if(!sel||!ta)return;ta.value=sel.value;sel.selectedIndex=0;recompute();}
+
+/* ===== GATHER + COMPUTE ===== */
+function gather(){
+  const items=getItems();const gathered=items.map(c=>{
+    const max=useRubric?globalMax:(c.max||0);const score=parseFloat(document.getElementById('score_'+c.id)?.value);
+    const comment=(document.getElementById('cmt_'+c.id)?.value||'').trim();
+    return{name:c.name,max,weight:c.weight||0,score:isNaN(score)?null:score,comment};});
+  let pct=0;
+  if(useRubric){let weighted=0,wsum=0;gathered.forEach(it=>{if(it.score!==null&&it.max>0){weighted+=(it.score/it.max)*it.weight;wsum+=it.weight;}});
+    pct=wsum>0?(weighted/wsum)*100:0;}
+  else{let earned=0,possible=0;gathered.forEach(it=>{if(it.score!==null){earned+=it.score;possible+=it.max;}});
+    pct=possible>0?(earned/possible)*100:0;}
+  pct=Math.round(pct*10)/10;
+  const penalty=Math.max(0,parseFloat(document.getElementById('penaltyPoints')?.value)||0);
+  const penaltyReason=(document.getElementById('penaltyReason')?.value||'').trim();
+  return{items:gathered,pct,penalty,penaltyReason,hasAny:gathered.some(i=>i.score!==null)};
+}
+function recompute(){
+  const g=gather();
+  document.getElementById('feedbackName').textContent=document.getElementById('studentName').value.trim();
+  const disp=document.getElementById('totalDisplay');
+  if(!g.hasAny){disp.textContent='\u2014';}
+  else if(g.penalty>0){const f=Math.max(0,Math.round((g.pct-g.penalty)*10)/10);
+    disp.innerHTML=`${f}% <span class="pen-note">(${g.pct}% \u2212 ${trim(g.penalty)})</span>`;}
+  else{disp.textContent=g.pct+'%';}
+  const out=document.getElementById('feedbackOut'),text=buildStatement(g);
+  if(!text){out.className='output empty';out.textContent='Enter scores and comments. The feedback statement appears here.';}
+  else{out.className='output';out.textContent=text;}
+}
+function buildStatement(g){
+  const overall=(document.getElementById('overallComment')?.value||'').trim();const paras=[];
+  g.items.filter(i=>i.comment).forEach(it=>paras.push(closeSentence(it.comment)));
+  if(overall)paras.push(closeSentence(overall));
+  if(g.penalty>0&&g.penaltyReason)paras.push(`* ${closeSentence(g.penaltyReason)} (${trim(g.penalty)} percentage point${g.penalty===1?'':'s'} deducted.)`);
+  return paras.join('\n\n');}
+function closeSentence(raw){let s=raw.replace(/\s+$/,'');if(!/[.!?]$/.test(s))s+='.';return s;}
+
+/* ===== SAVE / EDIT / NAV ===== */
+function saveStudent(){
+  const name=document.getElementById('studentName').value.trim();if(!name){alert('Enter a student name.');return;}
+  const g=gather();if(!g.hasAny){alert('Enter at least one score.');return;}
+  const finalPct=Math.max(0,Math.round((g.pct-g.penalty)*10)/10);
+  const record={id:editingId||Date.now(),name,pct:g.pct,rawPct:g.pct,penalty:g.penalty,penaltyReason:g.penaltyReason,
+    items:g.items,overall:(document.getElementById('overallComment')?.value||'').trim(),statement:buildStatement(g),mode:useRubric?'rubric':'quiz'};
+  if(editingId){const i=students.findIndex(s=>s.id===editingId);students[i]=record;}else{students.push(record);}
+  if(useCurve)autoCurve();
+  persistStudents();immediateGHSave();clearForm();renderBoard();
+}
+function editStudent(id){if(removeMode)return;const s=students.find(x=>x.id===id);if(!s)return;editingId=id;
+  document.getElementById('studentName').value=s.name;
+  document.getElementById('overallComment').value=s.overall||'';
+  document.getElementById('penaltyPoints').value=s.penalty?s.penalty:'';
+  document.getElementById('penaltyReason').value=s.penaltyReason||'';
+  checkLock();renderScoreArea();
+  (s.items||[]).forEach(it=>{const c=getItems().find(r=>r.name===it.name);if(c){
+    const se=document.getElementById('score_'+c.id),ce=document.getElementById('cmt_'+c.id);
+    if(se&&it.score!==null)se.value=it.score;if(ce)ce.value=it.comment||'';}});
+  document.getElementById('editBanner').innerHTML=
+    `<div class="editing-banner"><span>${s.pct!=null?'Editing':'Grading'} <b>${esc(s.name)}</b></span>
+     <button class="ghost tiny" onclick="clearForm()">Cancel</button></div>`;
+  recompute();window.scrollTo({top:0,behavior:'smooth'});}
+function clearForm(){editingId=null;document.getElementById('studentName').value='';
+  document.getElementById('overallComment').value='';document.getElementById('penaltyPoints').value='';
+  document.getElementById('penaltyReason').value='';document.getElementById('editBanner').innerHTML='';
+  checkLock();renderScoreArea();recompute();}
+function deleteStudent(id){if(!confirm('Remove this student?'))return;students=students.filter(s=>s.id!==id);
+  if(useCurve)autoCurve();persistStudents();immediateGHSave();if(editingId===id)clearForm();renderBoard();}
+function getSurnameSorted(){return[...students].sort((a,b)=>surnameKey(a.name).localeCompare(surnameKey(b.name),undefined,{sensitivity:'base'}));}
+function navStudent(dir){const sorted=getSurnameSorted();if(!sorted.length)return;let idx=-1;
+  if(editingId)idx=sorted.findIndex(s=>s.id===editingId);
+  else{const n=document.getElementById('studentName').value.trim().toLowerCase();if(n)idx=sorted.findIndex(s=>s.name.toLowerCase()===n);}
+  let next=idx+dir;if(next<0)next=sorted.length-1;if(next>=sorted.length)next=0;editStudent(sorted[next].id);}
+
+/* ===== LEDGER ===== */
+function formatLastFirst(name){const p=name.trim().split(/\s+/);if(p.length<2)return name.toUpperCase();return p.slice(1).join(' ').toUpperCase()+', '+p[0];}
+function surnameKey(name){const p=name.trim().split(/\s+/);if(p.length<2)return name.trim().toLowerCase();return(p.slice(1).join(' ')+' '+p[0]).toLowerCase();}
+function setSortMode(m){sortMode=m;document.getElementById('sortGrade').classList.toggle('active',m==='grade');
+  document.getElementById('sortSurname').classList.toggle('active',m==='surname');renderBoard();}
+function renderBoard(){
+  const board=document.getElementById('board'),empty=document.getElementById('boardEmpty');
+  board.innerHTML='';board.classList.toggle('remove-mode',removeMode);
+  document.getElementById('removeBar').style.display=removeMode?'flex':'none';
+  document.getElementById('normalFooter').style.display=removeMode?'none':'flex';
+  // board head for curved column
+  const hw=document.getElementById('boardHeadWrap');
+  hw.innerHTML=curveActive?`<div class="board-head" style="grid-template-columns:30px 1fr auto 56px"><span>#</span><span>Student</span><span style="text-align:right">Raw</span><span style="text-align:right">Curved</span></div>`:'';
+  if(!students.length){empty.style.display='block';renderStats();return;}
+  empty.style.display='none';
+  const isGraded=s=>s.pct!=null;const numItems=getItems().length;
+  const isPartial=s=>{if(!isGraded(s))return false;const scored=(s.items||[]).filter(it=>it.score!=null).length;return scored>0&&scored<numItems;};
+  const finalGrade=s=>{if(!isGraded(s))return-Infinity;return curveActive&&s.curved!=null?s.curved:Math.max(0,s.pct-(s.penalty||0));};
+  const cols=curveActive?'30px 1fr auto 56px':'30px 1fr auto';
+  const sorted=[...students].sort((a,b)=>{if(sortMode==='surname'){if(isGraded(a)!==isGraded(b))return isGraded(a)?-1:1;
+    return surnameKey(a.name).localeCompare(surnameKey(b.name),undefined,{sensitivity:'base'});}return finalGrade(b)-finalGrade(a);});
+  sorted.forEach((s,i)=>{const li=document.createElement('li');li.style.gridTemplateColumns=cols;
+    const graded=isGraded(s);if(!graded)li.classList.add('ungraded');if(isPartial(s))li.classList.add('partial-grade');
+    const cb=removeMode?`<input type="checkbox" class="rm-cb" data-id="${s.id}">`:'';
+    if(removeMode)li.style.gridTemplateColumns=curveActive?'30px 24px 1fr auto 56px':'30px 24px 1fr auto';
+    const curvedCell=curveActive?`<span class="cv">${graded&&s.curved!=null?s.curved:'\u2014'}</span>`:'';
+    const scoreCell=graded?`<span class="sc">${s.pct}%${s.penalty>0&&!(curveActive&&s.curved!=null)?` <span class="pen-tag">\u2212${trim(s.penalty)}</span>`:''}</span>`
+      :`<span class="sc-ungraded">not graded</span>`;
+    const detailsHtml=graded&&!removeMode?`<details class="recdetail"><summary>view</summary>
+      <div class="rec-breakdown">${(s.items||[]).filter(it=>it.score!=null).map(it=>`${esc(it.name)}: ${trim(it.score)}/${trim(it.max)}`).join(' &middot; ')}</div>
+      ${s.penalty>0?`<div class="rec-penalty">Penalty: \u2212${trim(s.penalty)} pts${s.penaltyReason?': '+esc(s.penaltyReason):''}</div>`:''}
+      <div class="rec-fb">${esc(s.statement)}</div>
+      <div style="margin-top:8px;display:flex;gap:6px"><button class="ghost tiny" onclick="copyOne(${s.id})">Copy feedback</button>
+        <button class="danger tiny" onclick="deleteStudent(${s.id})">Delete</button></div></details>`
+      :(!removeMode&&!graded?`<div style="margin-top:4px"><button class="ghost tiny" onclick="deleteStudent(${s.id})">Remove</button></div>`:'');
+    li.innerHTML=`<span class="rk">${i+1}</span>${cb}<span><span class="nm" onclick="editStudent(${s.id})">${esc(formatLastFirst(s.name))}</span>${detailsHtml}</span>${scoreCell}${curvedCell}`;
+    board.appendChild(li);});renderStats();}
+/* remove mode */
+function enterRemoveMode(){if(!students.length)return;removeMode=true;renderBoard();}
+function exitRemoveMode(){removeMode=false;renderBoard();}
+function confirmRemoveSelected(){const cbs=document.querySelectorAll('.rm-cb:checked');if(!cbs.length){alert('Select at least one student.');return;}
+  const ids=new Set([...cbs].map(cb=>Number(cb.dataset.id)));if(!confirm(`Remove ${ids.size} student${ids.size!==1?'s':''}?`))return;
+  students=students.filter(s=>!ids.has(s.id));if(editingId&&ids.has(editingId))clearForm();removeMode=false;
+  if(useCurve)autoCurve();persistStudents();immediateGHSave();renderBoard();}
+
+/* ===== CURVE ===== */
+function computeCurve(){const TOP=curveTop,BOTTOM=curveBottom,TM=85;const graded=students.filter(s=>s.pct!=null);
+  students.filter(s=>s.pct==null).forEach(s=>{delete s.curved;});const raws=graded.map(s=>s.pct);
+  const lo=Math.min(...raws),hi=Math.max(...raws);
+  if(hi-lo<1e-4){graded.forEach(s=>{s.curved=Math.max(0,Math.round(TM)-(s.penalty||0));});return{ok:1,reachable:0,flat:1};}
+  const norm=raws.map(r=>(r-lo)/(hi-lo));const meanFor=g=>norm.map(t=>BOTTOM+(TOP-BOTTOM)*Math.pow(t,g)).reduce((a,b)=>a+b)/norm.length;
+  let gamma=1,reachable=1;if(Math.abs(norm.reduce((a,b)=>a+b)/norm.length-(TM-BOTTOM)/(TOP-BOTTOM))>5e-4){
+    let loG=0.05,hiG=20;if(meanFor(hiG)>TM||meanFor(loG)<TM)reachable=0;
+    for(let i=0;i<60;i++){gamma=(loG+hiG)/2;const m=meanFor(gamma);if(Math.abs(m-TM)<0.01)break;if(m>TM)loG=gamma;else hiG=gamma;}}
+  graded.forEach(s=>{const t=(s.pct-lo)/(hi-lo);s.curved=Math.max(0,Math.round(BOTTOM+(TOP-BOTTOM)*Math.pow(t,gamma))-(s.penalty||0));});
+  return{ok:1,reachable,flat:0};}
+function autoCurve(){if(!useCurve)return;const note=document.getElementById('curveNote');
+  const gc=students.filter(s=>s.pct!=null).length;
+  if(gc<AUTO_CURVE_MIN){if(curveActive||students.some(s=>s.curved!=null))students.forEach(s=>{delete s.curved;});curveActive=false;
+    note.textContent=gc?`Auto-curve at ${AUTO_CURVE_MIN} graded students. ${AUTO_CURVE_MIN-gc} more.`:'';return;}
+  const res=computeCurve();curveActive=true;
+  const graded=students.filter(s=>s.pct!=null&&s.curved!=null);const avg=graded.reduce((a,s)=>a+s.curved,0)/graded.length;
+  const anyPen=graded.some(s=>(s.penalty||0)>0);
+  let msg=res.flat?'All scores identical; curved to 85 before penalties.'
+    :anyPen?`Curved ${curveBottom}\u2013${curveTop}, avg 85 pre-penalty. Post-penalty avg: ${avg.toFixed(1)}.`
+    :`Auto-curved. ${curveBottom}\u2013${curveTop}, class average ${avg.toFixed(1)}.`;
+  if(!res.reachable&&!res.flat)msg+=' Exact 85 not achievable; closest fit used.';note.textContent=msg;}
+function onCurveRangeChange(){curveBottom=Math.max(0,Number(document.getElementById('curveBottomInput').value)||0);
+  curveTop=Math.max(curveBottom+1,Number(document.getElementById('curveTopInput').value)||100);
+  persistConfig();if(useCurve&&students.filter(s=>s.pct!=null).length>=AUTO_CURVE_MIN){autoCurve();persistStudents();renderBoard();}}
+
+/* ===== STATS ===== */
+function quantile(sorted,q){const n=sorted.length;if(n===1)return sorted[0];const pos=(n-1)*q;const base=Math.floor(pos);const rest=pos-base;
+  return sorted[base+1]!==undefined?sorted[base]+rest*(sorted[base+1]-sorted[base]):sorted[base];}
+function computeStats(values){const n=values.length;const sorted=[...values].sort((a,b)=>a-b);
+  const mean=values.reduce((a,b)=>a+b,0)/n;const median=quantile(sorted,0.5);const q1=quantile(sorted,0.25);const q3=quantile(sorted,0.75);
+  const sumSq=values.reduce((a,v)=>a+(v-mean)**2,0);const sd=Math.sqrt(n>1?sumSq/(n-1):0);
+  let skew=null;if(n>=3&&sd>0){skew=(n/((n-1)*(n-2)))*values.reduce((a,v)=>a+((v-mean)/sd)**3,0);}
+  let kurt=null;if(n>=4&&sd>0){kurt=(n*(n+1))/((n-1)*(n-2)*(n-3))*values.reduce((a,v)=>a+((v-mean)/sd)**4,0)-(3*(n-1)**2)/((n-2)*(n-3));}
+  return{mean,median,sd,skew,kurt,q1,q3,plus1:mean+sd,minus1:mean-sd,n};}
+function renderStats(){
+  const wrap=document.getElementById('statsWrap');if(!wrap)return;
+  const total=students.length,graded=students.filter(s=>s.pct!=null),gc=graded.length;
+  if(!total){wrap.style.display='none';wrap.innerHTML='';return;}
+  wrap.style.display='block';
+  const pctDone=total>0?Math.round(gc/total*100):0;const items=getItems();
+  let html=`<div class="stats-title">Grading progress</div><div style="font-size:13px;margin-bottom:6px">
+    <span style="color:var(--ink-soft)">Graded:</span> <b style="color:var(--accent)">${gc}/${total} (${pctDone}%)</b>`;
+  items.forEach(c=>{const ws=graded.filter(s=>(s.items||[]).some(it=>it.name===c.name&&it.score!=null)).length;
+    html+=` &middot; <span style="color:var(--ink-soft)">${esc(c.name||'?')}:</span> <b style="color:var(--accent)">${total>0?Math.round(ws/total*100):0}%</b>`;});
+  if(gc>0){const avg=graded.reduce((a,s)=>a+s.pct,0)/gc;html+=` &middot; <span style="color:var(--ink-soft)">Avg:</span> <b style="color:var(--accent)">${Math.round(avg*10)/10}%</b>`;}
+  html+=`</div>`;
+  if(curveActive){const vals=students.filter(s=>s.curved!=null).map(s=>s.curved);if(vals.length>=1){
+    const st=computeStats(vals);const f=x=>x==null?'\u2014':(Math.round(x*100)/100).toString();const sf=st.skew!=null&&Math.abs(st.skew)>0.5;
+    const rows=[['Average',f(st.mean)],['Median',f(st.median)],['Std Dev',f(st.sd)],['Skewness',f(st.skew),sf],
+      ['Q1',f(st.q1)],['Q3',f(st.q3)],['Avg+1SD',f(st.plus1)],['Avg\u22121SD',f(st.minus1)],['Kurtosis',f(st.kurt)]];
+    let note='';if(st.skew==null&&vals.length<3)note='Skewness needs 3+ students.';
+    if(st.kurt==null&&vals.length<4)note=(note?note+' ':'')+'Kurtosis needs 4+ students.';
+    if(sf){const dir=st.skew>0?'positive':'negative';note=(note?note+' ':'')+`Skewness is ${dir}; curve is lopsided.`;}
+    html+=`<div class="stats-title" style="margin-top:12px">Curved statistics <span class="stats-n">n=${st.n}</span></div>
+      <table class="stats-table"><tbody>${rows.map(r=>`<tr class="${r[2]?'flagged':''}"><td class="st-label">${r[0]}</td><td class="st-val">${r[1]}</td></tr>`).join('')}</tbody></table>
+      ${note?`<p class="stats-foot${sf?' flag-foot':''}">${note}</p>`:''}`;};}
+  wrap.innerHTML=html;}
+
+/* ===== FILENAME ===== */
+function fileSafe(s){return(s||'').replace(/[^A-Za-z0-9]+/g,'');}
+function semesterCode(d){const m=d.getMonth(),dd=d.getDate();if(m<=4)return'SP';if(m===5||m===6)return'SM';if(m===7)return dd<=15?'SM':'FA';return'FA';}
+function buildFileStem(){const now=new Date(),n=fileSafe(courseNumber),t=fileSafe(assignmentTitle),parts=[];
+  if(n)parts.push(n);if(t)parts.push(t);parts.push(semesterCode(now));parts.push(String(now.getFullYear()));
+  parts.push(classFormat==='Online'?'ON':'RI');return(n||t)?parts.join('_'):'gradebook_'+parts.join('_');}
+function renderFilenamePreview(){const el=document.getElementById('filenamePreview');if(el)el.textContent=buildFileStem();}
+let ghLoadTimer=null,lastGHPath='';
+function onCourseInfoChange(){courseNumber=document.getElementById('courseNumber').value;assignmentTitle=document.getElementById('assignmentTitle').value;
+  classFormat=document.getElementById('classFormat').value;renderFilenamePreview();persistConfig();
+  // When the GitHub path changes, debounce-load the assignment
+  const newPath=ghPath();
+  if(ghConnected&&newPath&&newPath!==lastGHPath){
+    if(ghLoadTimer)clearTimeout(ghLoadTimer);
+    ghLoadTimer=setTimeout(async()=>{
+      lastGHPath=newPath;ghSHA=null;
+      const loaded=await tryLoadFromGH();
+      if(!loaded){students=[];editingId=null;populateUI();recompute();}
+    },1500);
+  }
+}
+
+/* ===== COPY / EXPORT ===== */
+function copyFeedback(){navigator.clipboard.writeText(document.getElementById('feedbackOut').textContent).then(()=>flash('copyState','copied'));}
+function copyOne(id){const s=students.find(x=>x.id===id);if(s)navigator.clipboard.writeText(s.statement);}
+function flash(elId,msg){const el=document.getElementById(elId);el.textContent=msg;setTimeout(()=>el.textContent='',1600);}
+function exportCSV(){if(!students.length){alert('Nothing to export.');return;}
+  const sorted=[...students].sort((a,b)=>{const ag=a.pct!=null,bg=b.pct!=null;if(ag!==bg)return ag?-1:1;if(!ag)return 0;return(b.pct||0)-(a.pct||0);});
+  const items=getItems();const cols=['Rank','Name'];
+  items.forEach(c=>{cols.push(c.name+' (score)');cols.push(c.name+' (max)');cols.push(c.name+' (feedback)');});
+  cols.push('Raw %','Penalty','Penalty reason');
+  if(curveActive)cols.push('Curved');cols.push('Feedback statement');
+  const rows=[cols];sorted.forEach((s,i)=>{const graded=s.pct!=null;const row=[i+1,formatLastFirst(s.name)];
+    items.forEach(c=>{const it=(s.items||[]).find(x=>x.name===c.name);row.push(it&&it.score!=null?it.score:'');row.push(it?it.max:'');row.push(it?it.comment||'':'');});
+    row.push(graded?s.pct:'');row.push(s.penalty||0);row.push(s.penaltyReason||'');
+    if(curveActive)row.push(s.curved!=null?s.curved:'');row.push(s.statement||'');rows.push(row);});
+  const csv=rows.map(r=>r.map(cell=>{const v=String(cell==null?'':cell).replace(/"/g,'""');return/[",\n]/.test(v)?`"${v}"`:v;}).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=buildFileStem()+'.csv';a.click();}
+
+/* ===== BACKUP ===== */
+function exportBackup(){const payload={format:'grading-tool-backup',version:2,savedAt:new Date().toISOString(),
+  courseNumber,assignmentTitle,classFormat,useRubric,useCurve,globalMax,curveTop,curveBottom,rubric,qItems,students};
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
+  a.download=buildFileStem()+'.json';a.click();setUnsaved(false);}
+function importBackup(input){const file=input.files&&input.files[0];if(!file)return;const reader=new FileReader();
+  reader.onload=async()=>{let data;try{data=JSON.parse(reader.result);}catch(e){alert('Not valid JSON.');input.value='';return;}
+    if(!data||data.format!=='grading-tool-backup'){alert('Not a grading tool backup.');input.value='';return;}
+    if(!confirm(`Import ${data.students.length} student(s)? This replaces everything.`)){input.value='';return;}
+    restorePayload(data);editingId=null;
+    await persistConfig();await persistStudents();immediateGHSave();
+    populateUI();clearForm();setUnsaved(false);input.value='';};reader.readAsText(file);}
+
+/* ===== ROSTER IMPORT ===== */
+function importRoster(input){const file=input.files&&input.files[0];if(!file)return;const reader=new FileReader();
+  reader.onload=()=>{const lines=reader.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
+    if(lines.length<2){alert('Need a header row plus at least one student.');input.value='';return;}
+    function parse(line){const f=[];let cur='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(q){if(c==='"'&&line[i+1]==='"'){cur+='"';i++;}
+      else if(c==='"')q=false;else cur+=c;}else{if(c==='"')q=true;else if(c===','||c==='\t'){f.push(cur.trim());cur='';}else cur+=c;}}f.push(cur.trim());return f;}
+    const hdr=parse(lines[0]).map(h=>h.toLowerCase().replace(/[^a-z]/g,''));
+    const li=hdr.findIndex(h=>['lastname','last','surname','family','familyname'].includes(h));
+    const fi=hdr.findIndex(h=>['firstname','first','given','givenname'].includes(h));
+    if(li<0||fi<0){alert('Could not find Last Name and First Name columns.');input.value='';return;}
+    const existing=new Set(students.map(s=>s.name.toLowerCase().trim()));let added=0,skipped=0;
+    for(let i=1;i<lines.length;i++){const f=parse(lines[i]);const last=(f[li]||'').trim(),first=(f[fi]||'').trim();
+      if(!last&&!first)continue;const full=first?`${first} ${last}`:last;
+      if(existing.has(full.toLowerCase())){skipped++;continue;}existing.add(full.toLowerCase());
+      students.push({id:Date.now()+i,name:full,pct:null,rawPct:null,penalty:0,penaltyReason:'',items:[],statement:''});added++;}
+    if(useCurve)autoCurve();persistStudents();immediateGHSave();renderBoard();setUnsaved(true);input.value='';
+    alert(`Added ${added} student${added!==1?'s':''}. ${skipped?skipped+' duplicate(s) skipped.':''}`);};reader.readAsText(file);}
+
+/* ===== WIPE ===== */
+async function wipeAll(){if(!confirm('Delete ALL student records?'))return;students=[];lsDel('students');immediateGHSave();renderBoard();}
+
+/* ===== UTILS ===== */
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+function trim(n){return Number.isInteger(n)?n:Math.round(n*10)/10;}
+function populateUI(){
+  document.getElementById('courseNumber').value=courseNumber;document.getElementById('assignmentTitle').value=assignmentTitle;
+  document.getElementById('classFormat').value=classFormat;
+  document.getElementById('chkRubric').checked=useRubric;document.getElementById('chkCurve').checked=useCurve;
+  document.getElementById('curveRangeWrap').style.display=useCurve?'flex':'none';
+  document.getElementById('curveTopInput').value=curveTop;document.getElementById('curveBottomInput').value=curveBottom;
+  renderFilenamePreview();renderSetup();renderScoreArea();
+  if(useCurve)autoCurve();renderBoard();
+}
+['studentName','overallComment'].forEach(id=>{document.addEventListener('input',e=>{if(e.target.id===id){if(id==='studentName')checkLock();recompute();}});});
+
+/* ===== BOOT ===== */
+(async function init(){
+  await loadState();populateUI();recompute();setUnsaved(false);
+  if(ghConnected){showDashboard();}else{showGrader();}
+})();
+</script>
+</body>
+</html>
